@@ -17,7 +17,7 @@ resource "aws_security_group" "ecs_service" {
 }
 
 resource "aws_ecs_cluster" "main" {
-  name = "${var.environment}-cluster"
+  name = var.ecs_cluster_name
   setting {
     name  = "containerInsights"
     value = var.container_insights ? "enabled" : "disabled"
@@ -91,6 +91,10 @@ resource "aws_ecs_service" "gatus_service" {
   task_definition = aws_ecs_task_definition.gatus_ecs_task.arn
   desired_count   = var.desired_count
   launch_type     = "FARGATE"
+
+  lifecycle {
+    ignore_changes = [task_definition, desired_count]
+  }
 
   network_configuration {
     subnets         = var.private_subnets

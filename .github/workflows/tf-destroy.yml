@@ -12,48 +12,53 @@ concurrency:
   group: "deploy-infrastructure" 
   cancel-in-progress: false
 
-permissions:
-  id-token: write
-  contents: read
+permissions: {}
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
-  WORKING_DIR: ./terraform/environment/dev
+  WORK_DIR: ./terraform/environment/dev
 
 jobs:
   teardown-infrastructure:
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
     
+    defaults:
+      run:
+        working-directory: ${{ env.WORK_DIR }}
+
     steps:
+
+      - name: checkout repository 
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
       - name: safety lock
         run: |
           if [ "${{ github.event.inputs.confirm_destroy }}" != "destroy" ]; then
-            echo "ERROR ✋🏽: You did not type 'destroy'. Infrastructure is safe."
+            echo "Error: You did not type 'destroy'. Infrastructure is safe."
             exit 1
           fi
-          echo "Teardown confirmed. Proceeding...⏳"
-
-      - name: checkout repository 
-        uses: actions/checkout@v4
+          echo "Teardown confirmed. Proceeding..."
 
       - name: configure AWS credentials w/ OIDC
-        uses: aws-actions/configure-aws-credentials@v4.1.0
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7
         with:
           role-to-assume: ${{ secrets.AWS_INFRA_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: terraform setup
-        uses: hashicorp/setup-terraform@v4
+        uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85
         with:
           terraform_version: "1.14.7"
 
       - name: terraform init
-        working-directory: ${{ env.WORKING_DIR }}
         run: terraform init -input=false
 
-      - name: 🗑️ terraform destroy
-        working-directory: ${{ env.WORKING_DIR }}
-        run: terraform destroy --auto-approve -input=false -var="container_image=teardown-placeholder"
+      - name: terraform destroy
+        run: terraform destroy --auto-approve
 
       - name: final status dashboard
         if: always()

@@ -1,103 +1,67 @@
 name: Deploy Infrastructure
 
 on:
-  workflow_run:
-    workflows: ["Build & Push Docker Image to ECR"]
-    types:
-      - completed
   workflow_dispatch:
 
 concurrency:
   group: "deploy-infrastructure"
   cancel-in-progress: false
 
-permissions:
-  id-token: write
-  contents: read
+permissions: {}
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
-  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
-  WORKING_DIR: ./terraform/environment/dev
-  IMAGE_TAG: latest
+  WORK_DIR: ./terraform/environment/dev
 
 jobs:
   deploy-infrastructure:
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    defaults:
+      run:
+        working-directory: ${{ env.WORK_DIR }}
 
     steps:
       - name: checkout repository 
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: configure AWS credentials w/ OIDC
-        uses: aws-actions/configure-aws-credentials@v4.1.0
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7
         with:
           role-to-assume: ${{ secrets.AWS_INFRA_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: login to ecr
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@183a1442edf41672e66566b7fc560e297a290896
 
-      - name: terraform setup
-        uses: hashicorp/setup-terraform@v4
+      - name: setup terraform
+        uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85
         with:
           terraform_version: "1.14.7"
 
       - name: terraform format
-        working-directory: ${{ env.WORKING_DIR }}
         run: terraform fmt -check
         continue-on-error: true
 
       - name: terraform init
-        working-directory: ${{ env.WORKING_DIR }}
         run: terraform init -input=false
 
       - name: terraform validate
-        working-directory: ${{ env.WORKING_DIR }}
         run: terraform validate
 
-      - name: checkov scan 
-        uses: bridgecrewio/checkov-action@v12
+      - name: security scan 
+        uses: bridgecrewio/checkov-action@99bb2caf247dfd9f03cf984373bc6043d4e32ebf
         with:
-          directory: ${{ env.WORKING_DIR }}
+          directory: ${{ env.WORK_DIR }}
         continue-on-error: true
 
       - name: terraform plan
-        working-directory: ${{ env.WORKING_DIR }}
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        run: terraform plan -var="container_image=${ECR_REGISTRY}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}" -out=tfplan
+        run: terraform plan -out=tfplan
 
       - name: terraform apply
-        working-directory: ${{ env.WORKING_DIR }}
         run: terraform apply -input=false tfplan
-
-      - name: app url output
-        working-directory: ${{ env.WORKING_DIR }}
-        run: |
-          DYNAMIC_URL=$(terraform output -raw app_url)
-          echo "Live URL 👉🏽 $DYNAMIC_URL"
-          echo "APP_URL=$DYNAMIC_URL" >> $GITHUB_ENV
-      
-      - name: container startup wait
-        run: |
-          echo "Waiting 60 seconds for the new container to become healthy..."
-          sleep 60
-      
-      - name: application health check
-        run: |
-          echo "Pinging ${{ env.APP_URL }}..."
-          
-          if curl --fail --silent --show-error --head \
-            --retry 5 \
-            --retry-delay 10 \
-            --retry-all-errors \
-            "${{ env.APP_URL }}"; then
-            
-            echo "Health check passed ✅!"
-          else
-            echo "Health check failed after 5 attempts! The app is not responding properly at ${{ env.APP_URL }} 🚨."
-            exit 1
-          fi

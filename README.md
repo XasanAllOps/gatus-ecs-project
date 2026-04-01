@@ -29,7 +29,7 @@ An AWS ECS Fargate deployment demonstrating tiered IaC and secure CI/CD automati
 ## Terraform Structure
 
 ```
-Gatus-ECS-Terraform-Docker-GA-AWS/
+gatus-ecs-project/
 ├── .github/
 │   └── workflows/
 │       ├── build.yml
@@ -115,8 +115,8 @@ Verify the Gatus application builds and runs correctly on your local machine.
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/XasanAllOps/Gatus-ECS-Terraform-Docker-GA-AWS.git
-cd Gatus-ECS-Terraform-Docker-GA-AWS/application
+git clone https://github.com/XasanAllOps/gatus-ecs-project.git
+cd gatus-ecs-project/application
 ```
 
 **2. Build and run the Docker Image**

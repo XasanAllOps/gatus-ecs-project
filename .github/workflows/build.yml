@@ -1,12 +1,11 @@
-name: build & push docker image to ecr
+name: build & deploy to ecs
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - 'application/**'
-      - '.github/workflows/**'
+  workflow_dispatch:
+
+concurrency:
+  group: "deploy-application" 
+  cancel-in-progress: true
 
 permissions:
   id-token: write
@@ -21,52 +20,105 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout repository 
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Configure AWS credentials w/ OIDC
-        uses: aws-actions/configure-aws-credentials@v4.1.0
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7
         with:
           role-to-assume: ${{ secrets.AWS_APP_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
       
       - name: login to ecr
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@183a1442edf41672e66566b7fc560e297a290896
 
       - name: build docker image
-        run: docker build -t gatus:latest ./application
+        id: build-image
+        run: |
+          IMAGE="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
+          docker build -t $IMAGE ./application
+          echo "IMAGE_URL=$IMAGE" >> $GITHUB_ENV
 
       - name: security test image
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
-          image-ref: gatus:latest
-          format: table
+          image-ref: ${{ env.IMAGE_URL }}
           version: v0.69.2
           exit-code: '0'
           ignore-unfixed: true
           vuln-type: os,library
           severity: CRITICAL,HIGH
       
-      - name: test locally
+      - name: local integration test
         run: |
-          docker run -d --rm --name gatus-app -p 8080:8080 gatus:latest
+          docker run -d --rm --name gatus-app -p 8080:8080 ${{ env.IMAGE_URL }}
+          echo "Waiting 10 seconds for the container to initialise..."
           sleep 10
-          if [ "$(docker ps -q -f name=gatus-app)" ]; then
+
+          if ! docker ps -q -f name=gatus-app | grep -q .; then
+            echo "Failed! Check logs for details."
+            docker logs gatus-app
+            exit 1
+          else
             echo "Up & running ✅"
-          else
-            echo "Failed 🚨" && exit 1
           fi
-          if curl --fail http://localhost:8080 > /dev/null; then
-            echo "Responding well 🎉"
-          else
-            echo "I can't hear you buddy 🚨" && exit 1
+
+          if curl --fail --silent http://localhost:8080/health > /dev/null; then
+            echo "Container is running but Health endpoint failed ❌"
+            docker logs gatus-app
+            docker stop gatus-app
+            exit 1
           fi
+
+          echo "local test passed ✅"
           docker stop gatus-app
 
-      - name: tag & push docker image to ecr
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+      - name: push docker image to ecr
+        run: docker push ${{ env.IMAGE_URL }}
+
+      - name: render new task definition
+        id: register-task-definition
+        uses: aws-actions/amazon-ecs-render-task-definition@77954e213ba1f9f9cb016b86a1d4f6fcdea0d57e
+        with:
+           task-definition: ${{ vars.TASK_FAMILY }}
+           container-name: ${{ vars.ECS_CONTAINER_NAME }}
+           image: ${{ env.IMAGE_URL }}
+      
+      - name: deploy to ecs
+        uses: aws-actions/amazon-ecs-deploy-task-definition@fc8fc60f3a60ffd500fcb13b209c59d221ac8c8c
+        with:
+          task-definition: ${{ steps.register-task-definition.outputs.task-definition-arn }}
+          cluster: ${{ vars.ECS_CLUSTER_NAME }}
+          service: ${{ vars.ECS_SERVICE_NAME }}
+          wait-for-service-stability: true
+
+      - name: resolve target url
+        run: | 
+          if [ -n "${{ vars.CUSTOM_DOMAIN }}"]; then
+            echo "Custom domain found! Routing health check to https://${{ vars.CUSTOM_DOMAIN }}"
+            echo "APP_URL=https://${{ vars.CUSTOM_DOMAIN }}" >> $GITHUB_ENV
+          else
+            echo "No custom domain found, using default alb url for health check"
+            ALB_URL=$(aws elbv2 describe-load-balancers \
+              --names ${{ vars.ALB_NAME }} \
+              --query "LoadBalancers[0].DNSName" \
+              --output text)
+            echo "APP_URL=http://$ALB_URL" >> $GITHUB_ENV
+          fi
+
+      - name: application health check
         run: |
-          docker tag gatus:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          HEALTH_URL="${{ env.APP_URL }}/health"
+          echo "Pinging $HEALTH_URL..."
+
+          if curl --fail --silent --show-error \
+            --retry 5 \
+            --retry-delay 10 \
+            --retry-all-errors \
+            "$HEALTH_URL"; then
+
+            echo -e "\n Health check passed ✅"
+          else
+            echo -e "\n Health check failed ❌"
+            exit 1
+          fi

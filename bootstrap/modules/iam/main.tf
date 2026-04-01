@@ -33,7 +33,7 @@ resource "aws_iam_role" "oidc_role" {
   assume_role_policy = data.aws_iam_policy_document.oidc_assume_role_policy.json
 }
 
-data "aws_iam_policy_document" "ecr_policy" {
+data "aws_iam_policy_document" "app_policy" {
   statement {
     effect    = "Allow"
     actions   = ["ecr:GetAuthorizationToken"]
@@ -52,12 +52,37 @@ data "aws_iam_policy_document" "ecr_policy" {
     ]
     resources = [var.ecr_repository_arn]
   }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "ecs:RegisterTaskDefinition",
+      "ecs:DeregisterTaskDefinition",
+      "ecs:UpdateService",
+      "ecs:DescribeServices",
+      "ecs:DescribeTaskDefinition",
+      "ecs:DescribeTasks",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["iam:PassRole"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs-tasks.amazonaws.com"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "oidc_role_policy" {
   name   = "github-actions-ecr-policy"
   role   = aws_iam_role.oidc_role.id
-  policy = data.aws_iam_policy_document.ecr_policy.json
+  policy = data.aws_iam_policy_document.app_policy.json
 }
 
 # --- Role for GitHub Actions to manage infrastructure --- #
@@ -68,26 +93,6 @@ resource "aws_iam_role" "infra_role" {
 }
 
 data "aws_iam_policy_document" "infra_policy" {
-
-  statement {
-    effect    = "Allow"
-    actions   = ["ecr:GetAuthorizationToken"]
-    resources = ["*"]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
-      "ecr:CompleteLayerUpload",
-      "ecr:UploadLayerPart",
-      "ecr:InitiateLayerUpload",
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:PutImage",
-      "ecr:BatchGetImage"
-    ]
-    resources = [var.ecr_repository_arn]
-  }
-
 
   statement {
     effect = "Allow"
@@ -109,6 +114,7 @@ data "aws_iam_policy_document" "infra_policy" {
     actions = [
       "ec2:*",
       "ecs:*",
+      "ecr:*",
       "elasticloadbalancing:*",
       "route53:*",
       "acm:*",

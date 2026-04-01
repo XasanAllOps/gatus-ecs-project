@@ -44,6 +44,10 @@ variable "ecs_service_name" {
   type = string
 }
 
+variable "ecs_cluster_name" {
+  type = string
+}
+
 variable "desired_count" {
   type = number
 }
@@ -68,8 +72,7 @@ variable "container_image" {
 }
 
 variable "container_name" {
-  type    = string
-  default = "gatus_app"
+  type = string
 }
 
 variable "container_port" {

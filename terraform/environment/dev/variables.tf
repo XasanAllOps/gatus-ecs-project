@@ -42,6 +42,10 @@ variable "task_level_memory" {
   type = number
 }
 
+variable "container_name" {
+  type = string
+}
+
 variable "container_level_cpu" {
   type = number
 }
@@ -61,6 +65,10 @@ variable "task_cloudwatch_logs" {
 }
 
 variable "ecs_service_name" {
+  type = string
+}
+
+variable "ecs_cluster_name" {
   type = string
 }
 
