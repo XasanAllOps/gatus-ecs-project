@@ -76,17 +76,11 @@ jobs:
       - name: push docker image to ecr
         run: docker push ${{ env.IMAGE_URL }}
 
-      - name: download task definition
-        run: |
-          aws ecs describe-task-definition \
-            --task-definition ${{ vars.TASK_FAMILY }} \
-            --query 'taskDefinition' > task-definition.json
-
       - name: render new task definition
         uses: aws-actions/amazon-ecs-render-task-definition@77954e213ba1f9f9cb016b86a1d4f6fcdea0d57e
         id: render-task-definition
         with:
-           task-definition: task-definition.json
+           task-definition-family: ${{ vars.TASK_FAMILY}}
            container-name: ${{ vars.ECS_CONTAINER_NAME }}
            image: ${{ env.IMAGE_URL }}
       
