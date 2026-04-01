@@ -66,17 +66,17 @@ resource "aws_ecs_task_definition" "gatus_ecs_task" {
 
       healthCheck = {
         enabled     = true
-        command     = ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+        command     = ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3
         startPeriod = 60
       },
 
-      log_configuration = {
+      logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = var.task_cloudwatch_logs
+          awslogs-group         = aws_cloudwatch_log_group.main.name
           awslogs-region        = var.region
           awslogs-stream-prefix = var.task_family_name
         }

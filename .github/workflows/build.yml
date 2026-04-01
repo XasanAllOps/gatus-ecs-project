@@ -83,7 +83,6 @@ jobs:
             --query 'taskDefinition' > task-definition.json
 
       - name: render new task definition
-        id: register-task-definition
         uses: aws-actions/amazon-ecs-render-task-definition@77954e213ba1f9f9cb016b86a1d4f6fcdea0d57e
         with:
            task-definition: task-definition.json
@@ -100,7 +99,7 @@ jobs:
 
       - name: resolve target url
         run: | 
-          if [ -n "${{ vars.CUSTOM_DOMAIN }}"]; then
+          if [ -n "${{ vars.CUSTOM_DOMAIN }}" ]; then
             echo "Custom domain found! Routing health check to https://${{ vars.CUSTOM_DOMAIN }}"
             echo "APP_URL=https://${{ vars.CUSTOM_DOMAIN }}" >> $GITHUB_ENV
           else
