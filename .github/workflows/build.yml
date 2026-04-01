@@ -84,6 +84,7 @@ jobs:
 
       - name: render new task definition
         uses: aws-actions/amazon-ecs-render-task-definition@77954e213ba1f9f9cb016b86a1d4f6fcdea0d57e
+        id: render-task-definition
         with:
            task-definition: task-definition.json
            container-name: ${{ vars.ECS_CONTAINER_NAME }}
