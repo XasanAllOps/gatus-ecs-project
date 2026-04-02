@@ -76,15 +76,15 @@ gatus-ecs-project/
 ```
 
 ## Cost Optimisation
-
-* Replaced expensive Multi-AZ NATs with a single Regional NAT Gateway and an S3 VPC Endpoint to route gigabytes of ECR image pulls over the internal network for free.
-* Utilised ECS Fargate to pay strictly for consumed CPU/Memory, completely eliminating idle EC2 instance waste.
+* Provisioned a single Regional NAT Gateway to allow outbound connectivity for 3rd party integrations while strictly controlling costs. S3 VPC Endpoint to route gigabytes of ECR image pulls over the internal network, removing NAT data processing charges for container deployments.
+* Abstracted server managementusing AWS ECS Fargate to achieve true usage-based billing. This eliminates the financial waste of idle EC2 instances.
 * Multi-stage scratch Docker builds produce ultra-small application images (`35 MB`), slashing ECR storage fees and accelerating deployment times.
 * Implemented Amazon ECR Lifecycle Policies to automatically purge stale and untagged Docker images, preventing unbounded storage growth and reducing baseline AWS costs.
 
 ## Security
 
 * Applied strict Role-Based Access Control (RBAC) across the environment. Pipeline roles and ECS Task Execution roles are scoped to the absolute minimum permissions required.
+* Establised an empty global permissions block (`permissions: {}`) to ensure no job inherits broad repository access. Permissions are explicitly granted only to individual jobs that require them, enforcing Principle of Least Privilege and prevent lateral privilege escalation across pipeline steps.
 * Completely eliminated static AWS keys. GitHub Actions authenticates via OIDC to assume short-lived, strictly scoped IAM roles.
 * Fargate tasks are isolated in Private Subnets. All internet traffic is mediated by an ALB that enforces encryption in transit via automatic HTTP-to-HTTPS redirection and ACM-managed TLS certificates.
 * The scratch Docker image contains no OS shell or package manager, reducing the container attack surface to near-zero.
