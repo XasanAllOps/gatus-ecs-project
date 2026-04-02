@@ -109,7 +109,7 @@ Before deploying this infrastructure, ensure you have the following:
 
 ## Deployment Guide
 
-This guide walks you through testing the application locally, bootstrapping the foundational AWS infrastructure, and triggering the automated CI/CD pipelines.
+This guide walks you through testing the application locally, bootstrapping the foundational AWS infrastructure, and triggering the CI/CD pipelines.
 
 ### Step 1: Local Development & Testing
 
@@ -169,12 +169,12 @@ cd ../bootstrap
 Modify the values in `terraform.tfvars` to match your setup:
 
 ```bash
-aws_region       = "enter AWS region>"
+aws_region       = "enter-aws-region"
 environment      = "dev"
-project_name     = "create project name"
-s3_bucket_prefix = "add a prefix"
+project_name     = "create-project-name"
+s3_bucket_prefix = "add-a-prefix"
 github_repo      = "github_username/github_repository"
-github_branch    = "branch_name"
+github_branch    = "branch-name"
 ```
 
 **4. Deploy the boostrap infrastructure:**
@@ -274,9 +274,7 @@ The deployment relies on manually triggering two workflows. To ensure a stable r
 
 **1. Core Infrastructure Deployment (`tf-deploy.yml`):**
 
-Why does this run first? AWS ECS requires a valid container image to
-successfully provision a Task Definition and Service. To solve this
-dependency loop, our Terraform code temporarily deploys a placeholder image. This allows the infrastructure to be fully built and validated before the actual application code is deployed.
+AWS ECS requires a valid container image to successfully provision a Task Definition and Service. To solve this dependency loop, our Terraform code temporarily deploys a placeholder image. This allows the infrastructure to be fully built and validated before the actual application code is deployed.
 
 - Code Validation: Executes formating and validation to ensure syntax standards and catch configurations errors early.
 
