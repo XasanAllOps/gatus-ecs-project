@@ -64,7 +64,7 @@ jobs:
           fi
 
           if ! curl --fail --silent http://localhost:8080/health > /dev/null; then
-            echo "Container is running but Health endpoint failed ❌"
+            echo "Container is running, health endpoint failed ❌"
             docker logs gatus-app
             docker stop gatus-app
             exit 1

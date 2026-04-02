@@ -1,8 +1,8 @@
 terraform {
   backend "s3" {
-    bucket       = "tf-state-gatus-app"
+    bucket       = "..."
     key          = "dev/ecs/tf.state"
-    region       = "eu-west-1"
+    region       = "..."
     encrypt      = true
     use_lockfile = true
   }

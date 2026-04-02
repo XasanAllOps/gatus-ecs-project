@@ -1,8 +1,8 @@
 #1. Run `cp terraform.tfvars.example terraform.tfvars`
 
 environment            = "dev"
-zone_name              = "xasan.site"
-record_name            = "xasan.site"
+zone_name              = "yourdomain.com"
+record_name            = "yourdomain.com"
 vpc_cidr               = "10.0.0.0/16"
 region                 = "eu-west-1"
 alb_security_name      = "alb-security"
