@@ -92,6 +92,8 @@ resource "aws_ecs_service" "gatus_service" {
   desired_count   = var.desired_count
   launch_type     = "FARGATE"
 
+  health_check_grace_period_seconds = 60
+
   lifecycle {
     ignore_changes = [task_definition, desired_count]
   }
