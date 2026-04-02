@@ -220,7 +220,7 @@ Select the Variables tab and create the following:
 
 - `AWS_REGION`: Target region
 - `CUSTOM_DOMAIN`: domain name
-- `ECR_REPOSITORY_NAME`: Specific name of the ECR repository
+- `ECR_REPOSITORY_NAME`: Add the terraform output name of the ECR repository here.
 - `ECS_CLUSTER_NAME`: Cluster name
 - `ECS_CONTAINER_NAME`: Container name
 - `ECS_SERVICE_NAME`: ECS service name
@@ -243,9 +243,9 @@ Open `backend.tf` and replace the ".." with your bucket name from Step 2 and AWS
 ```bash
 terraform {
   backend "s3" {
-    bucket         = ".." 
+    bucket         = "..." 
     key            = "dev/ecs/tf.state" # -- KEEP
-    region         = ".."
+    region         = "..."
     encrypt        = true
   }
 }
