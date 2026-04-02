@@ -210,7 +210,6 @@ Go to Settings > Secrets and variables > Actions.
 Select the Secrets tab and create the following (this split enforces strict RBAC between application and infrastructure):
 
 - `AWS_APP_ROLE_ARN`: Paste your *github_app_role_arn* output.
-
 - `AWS_INFRA_ROLE_ARN`: Paste your *github_infra_role_arn* output.
 
 **3. Add Repository Variables:**
@@ -218,8 +217,12 @@ Select the Secrets tab and create the following (this split enforces strict RBAC
 Select the Variables tab and create the following:
 
 - `AWS_REGION`: Your target region (e.g., eu-west-2).
-
-- `ECR_REPOSITORY_URL`: Paste your *ecr_repository_url* output.
+- `CUSTOM_DOMAIN`: domain name
+- `ECR_REPOSITORY`: Paste your *ecr_repository_url* output.
+- `ECS_CLUSTER_NAME`: Cluster name
+- `ECS_CONTAINER_NAME`: Container name
+- `ECS_SERVICE_NAME`: ECS service name
+- `TASK_FAMILY`: Task definition name
 
 ### Step 4: Configure Core Variables & Remote State
 
@@ -268,25 +271,25 @@ git push origin main # -- or master
 
 Once your code is pushed, the integrated CI/CD pipeline takes over. The deployment is split into two automated phases to ensure maximum security and stability.
 
-**1. Build & Push (build.yml):**
+**1. Core Infrastructure Deployment (tf-deploy.yml):**
 
-This workflow triggers automatically on any push to master involving the application/ directory. It performs the following quality gates:
+You will need to create the infrastructure first in order to successfully execute the build.yml
+
+- Deploy Infrastructure: All resources in terraform/ will be created and push a placeholder image.
+
+- Static Analysis: Runs Checkov to ensure your Terraform code meets AWS security best practices.
+
+- Automated Apply: Provisions all our resources 
+
+- Live Health Check: Once deployed, the pipeline waits for the Fargate tasks to stabilize and pings your Live URL to confirm a successful production rollout
+
+**2. Build & Push (build.yml):**
 
 - Security Scan: Uses Trivy to check the Docker image for Critical/High vulnerabilities.
 
 - Functional Test: Spins up the container inside the GitHub Runner and performs a curl health check to verify the app is responding.
 
 - ECR Push: Only after passing all tests is the image pushed to your AWS ECR repository.
-
-**2. Core Infrastructure Deployment (tf-deploy.yml):**
-
-This workflow triggers automatically once the Build & Push workflow succeeds.
-
-- Static Analysis: Runs Checkov to ensure your Terraform code meets AWS security best practices.
-
-- Automated Apply: Provisions all our resources 
-
-- Live Health Check: Once deployed, the pipeline waits for the Fargate tasks to stabilize and pings your Live URL to confirm a successful production rollout.
 
 **3. Verify Production:**
 
