@@ -268,48 +268,15 @@ git add .
 git commit -m "chore: configure deployment variables & update backend.tf"
 git push origin main # -- or master
 ```
-
 ### Step 5: Automated Deployment & Validation
 
-Once your code is pushed, the integrated CI/CD pipeline takes over. The deployment is split into two automated phases to ensure maximum security and stability.
-
-**1. Core Infrastructure Deployment (tf-deploy.yml):**
-
-You will need to create the infrastructure first in order to successfully execute the build.yml
-
-- Deploy Infrastructure: All resources in terraform/ will be created and push a placeholder image.
-
-- Static Analysis: Runs Checkov to ensure your Terraform code meets AWS security best practices.
-
-- Automated Apply: Provisions all our resources 
-
-- Live Health Check: Once deployed, the pipeline waits for the Fargate tasks to stabilize and pings your Live URL to confirm a successful production rollout
-
-**2. Build & Push (build.yml):**
-
-- Security Scan: Uses Trivy to check the Docker image for Critical/High vulnerabilities.
-
-- Functional Test: Spins up the container inside the GitHub Runner and performs a curl health check to verify the app is responding.
-
-- ECR Push: Only after passing all tests is the image pushed to your AWS ECR repository.
-
-**3. Verify Production:**
-
-Check the "Summary" page of your GitHub Action run. The pipeline will output your Live URL. Click it to see your Gatus dashboard live on the internet.
-
-### Step 5: Automated Deployment & Validation
-
-Once your code is pushed, the integrated CI/CD pipeline takes over.
-The deployment is split into two automated phases to ensure maximum
-security and stability.
+The deployment relies on manually triggering two workflows. To ensure a stable rollout, the `tf-deploy.yml` workflow must be triggered first to build the infrastructure followed by the `build.yml` workflow to inject the application code into our running environment.
 
 **1. Core Infrastructure Deployment (`tf-deploy.yml`):**
 
-*Why does this run first?* AWS ECS requires a valid container image to
+Why does this run first? AWS ECS requires a valid container image to
 successfully provision a Task Definition and Service. To solve this
-dependency loop, our Terraform code temporarily deploys a placeholder image. This allows the foundational networking, ALB,
-and ECS infrastructure to be fully built and validated before the
-actual application code is deployed.
+dependency loop, our Terraform code temporarily deploys a placeholder image. This allows the infrastructure to be fully built and validated before the actual application code is deployed.
 
 - Code Validation: Executes formating and validation to ensure syntax standards and catch configurations errors early.
 
@@ -320,44 +287,16 @@ meets strict AWS security best practices prior to deployment.
 
 **2. Build & Push (`build.yml`):**
 
-The Application Rollout: Now that the AWS infrastructure is
-successfully running the placeholder, this workflow builds the actual Gatus dashboard and performs a seamless rollout.
+- The Application Rollout: Now that the infrastructure is successfully running the placeholder, this workflow builds the Gatus dashboard and performs a successful rollout.
 
-- Security Scan: Uses Trivy to inspect the Docker image for
-Critical/High CVE vulnerabilities *before* it is allowed into the
-cloud environment.
+- Security Scan: Uses Trivy to inspect the Docker image for Critical/High CVE vulnerabilities before it is allowed into the cloud environment.
 
 - Functional Test: Spins up the container locally inside the
 GitHub Actions Runner and performs a `curl` health check to verify the
 application boots successfully.
 
 - ECR Push & ECS Update: Only after passing all quality gates is
-the real image pushed to your AWS ECR repository. The pipeline then triggers an ECS rolling update, gracefully swapping out the
-placeholder containers with your live Gatus application with zero
-downtime.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+the real image pushed to your AWS ECR repository. The pipeline then triggers an ECS rolling update swapping out the placeholder containers with your live Gatus application with zero downtime.
 
 ### Step 6: Secure Teardown
 
