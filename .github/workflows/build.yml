@@ -13,7 +13,7 @@ permissions:
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
-  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+  ECR_REPOSITORY_NAME: ${{ vars.ECR_REPOSITORY_NAME }}
 
 jobs:
   build-push:
@@ -35,7 +35,7 @@ jobs:
       - name: build docker image
         id: build-image
         run: |
-          IMAGE="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
+          IMAGE="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_NAME }}:${{ github.sha }}"
           docker build -t $IMAGE ./application
           echo "IMAGE_URL=$IMAGE" >> $GITHUB_ENV
 

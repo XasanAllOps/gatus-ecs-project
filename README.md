@@ -195,7 +195,7 @@ Upon a successful apply, Terraform will display your resource identifiers. Keep 
 
 - `github_infra_role_arn` (Required for GitHub Secrets)
 
-- `ecr_repository_url` (Required for GitHub Variables)
+- `ecr_repository_name` (Required for GitHub Variables)
 
 - `bucket_name` (Required for your backend.tf file)
 
@@ -218,9 +218,9 @@ Select the Secrets tab and create the following (this split enforces strict RBAC
 
 Select the Variables tab and create the following:
 
-- `AWS_REGION`: Your target region (e.g., eu-west-2).
+- `AWS_REGION`: Target region
 - `CUSTOM_DOMAIN`: domain name
-- `ECR_REPOSITORY`: Paste your *ecr_repository_url* output.
+- `ECR_REPOSITORY_NAME`: Specific name of the ECR repository
 - `ECS_CLUSTER_NAME`: Cluster name
 - `ECS_CONTAINER_NAME`: Container name
 - `ECS_SERVICE_NAME`: ECS service name
