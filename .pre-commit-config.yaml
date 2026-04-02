@@ -28,7 +28,6 @@ repos:
   rev: v1.7.12
   hooks:
     - id: actionlint
-      args: ['--config', '.github/actionlint.yaml']
 
 - repo: https://github.com/hadolint/hadolint
   rev: v2.14.0
