@@ -319,6 +319,10 @@ terraform destroy --auto-approve
 
 ## Images
 
+#### Dive Analysis Image Report
+
+![image](./images/image-size.png)
+
 #### Live Application
 
 ![image](./images/health-board.png)
